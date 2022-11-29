@@ -345,7 +345,9 @@ if (params.fasta) {
     if (hasExtension(params.fasta, 'gz')) {
         process decompress_fasta {
             tag "$fasta_gz"
-            label 'process_low'
+            // label 'process_low'
+            cpus 2
+            memory '5 GB'
 
             input:
             path(fasta_gz) from ch_fasta_gz
@@ -367,8 +369,9 @@ if (params.fasta) {
 if (!params.fai) {
     process generate_fai {
         tag "$fasta"
-        label 'process_low'
-
+        // label 'process_low'
+        cpus 2
+        memory '5 GB'
         input:
         path(fasta) from ch_fasta_fai
 
@@ -402,7 +405,9 @@ if (!params.star_index) {
         if (hasExtension(params.gtf, 'gz')) {
             process decompress_gtf {
                 tag "$gtf_gz"
-                label 'process_low'
+                // label 'process_low'
+                cpus 2
+                memory '5 GB'
 
                 input:
                 path(gtf_gz) from ch_gtf_gz_star
@@ -524,7 +529,9 @@ if (params.peakcaller && icount_check) {
  */
 process fastqc {
     tag "$name"
-    label 'process_medium'
+    // label 'process_medium'
+    cpus 2
+    memory '5 GB'
     publishDir "${params.outdir}/fastqc", mode: params.publish_dir_mode,
         saveAs: { filename ->
                       filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"
@@ -566,7 +573,10 @@ process fastqc {
 if (params.move_umi) {
     process move_umi {
         tag "$name"
-        label 'process_medium'
+        // label 'process_medium'
+        cpus 2
+        memory '12 GB'
+
         publishDir "${params.outdir}/umi", mode: params.publish_dir_mode,
             saveAs: { filename ->
                         filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"
@@ -603,7 +613,9 @@ if (params.move_umi) {
 //  ch_umi_moved.dump()
 process cutadapt {
     tag "$name"
-    // label 'process_high'memory '16 GB'    cpus 16
+    // label 'process_high'
+    memory '16 GB'    
+    cpus 8
     publishDir "${params.outdir}/cutadapt", mode: params.publish_dir_mode
 
     input:
@@ -717,7 +729,9 @@ process align {
  */
 process preseq {
     tag "$name"
-    label 'process_low'
+    // label 'process_low'
+    cpus 2
+    memory '5 GB'
     publishDir "${params.outdir}/preseq", mode: params.publish_dir_mode
 
     input:
@@ -745,7 +759,9 @@ process preseq {
 if (params.deduplicate) {
     process dedup {
         tag "$name"
-        label 'process_high'
+        // label 'process_high'
+        cpus 2
+        memory '16 GB'
         publishDir "${params.outdir}/dedup", mode: params.publish_dir_mode
 
         input:
@@ -786,7 +802,9 @@ if (params.gtf) {
 
     process rseqc {
         tag "$name"
-        label 'process_low'
+        // label 'process_low'
+        cpus 2
+        memory '5 GB'
         publishDir "${params.outdir}/rseqc", mode: params.publish_dir_mode
 
         input:
@@ -815,7 +833,9 @@ if (params.gtf) {
  */
 process get_crosslinks {
     tag "$name"
-    label 'process_medium'
+    // label 'process_medium'
+    cpus 8
+    memory '12 GB'
     publishDir "${params.outdir}/xlinks", mode: params.publish_dir_mode
 
     input:
@@ -975,7 +995,9 @@ if ('paraclu' in callers) {
 if ('pureclip' in callers) {
     process pureclip_peak_call {
         tag "$name"
-        label 'process_high'
+        // label 'process_high'
+        cpus 6
+        memory '48 GB'
         publishDir "${params.outdir}/pureclip", mode: params.publish_dir_mode
 
         when:
@@ -1043,7 +1065,9 @@ if ('pureclip' in callers) {
 if ('piranha' in callers) {
     process piranha_peak_call {
         tag "$name"
-        label 'process_high'
+        // label 'process_high'
+        cpus 16 
+        memory '36 GB'
         publishDir "${params.outdir}/piranha", mode: params.publish_dir_mode
 
         when:
@@ -1110,7 +1134,10 @@ if ('piranha' in callers) {
  * STEP 8 - QC plots
  */
 process clipqc {
-    label 'process_low'
+    // label 'process_low'
+    cpus 2
+    memory '16 GB'
+
     publishDir "${params.outdir}/clipqc", mode: params.publish_dir_mode 
 
     input:
@@ -1154,7 +1181,9 @@ process clipqc {
  * STEP 9 - MultiQC
  */
 process multiqc {
-    label 'process_low'
+    // label 'process_low'
+    cpus 2
+    memory '5 GB'
     publishDir "${params.outdir}/multiqc", mode: params.publish_dir_mode
 
     input:
