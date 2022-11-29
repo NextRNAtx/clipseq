@@ -69,7 +69,6 @@ params.star_index = params.genome ? params.genomes[ params.genome ].star ?: fals
 // Check input path parameters to see if they exist
 checkPathParamList = [
     params.input,
-    //params.input_control,
     params.fasta,
     params.gtf,
     params.star_index,
@@ -167,15 +166,8 @@ if (params.input) {
     Channel
         .fromPath(params.input, checkIfExists: true)
         .splitCsv(header:true)
-        .map{ row -> [ row.sample, file(row.exp_fastq, checkIfExists: true), file(row.control_fastq) ] }
-        .dump()
+        .map{ row -> [ row.sample, file(row.exp1_fastq, checkIfExists: true), file(row.exp2_fastq, checkIfExists: true), file(row.control1_fastq, checkIfExists: true), file(row.control2_fastq, checkIfExists: true) ] }
         .into{ ch_fastq; ch_fastq_fastqc_pretrim }
-        /*
-        if (file(null_control_fastqc)) {
-            "The test sample is running with control"
-        } else {
-            "The test sample is running without control"
-        } */
         
 } else {  
     exit 1, "Samples comma-separated input file not specified"
@@ -345,7 +337,7 @@ if (params.fasta) {
     if (hasExtension(params.fasta, 'gz')) {
         process decompress_fasta {
             tag "$fasta_gz"
-            // label 'process_low'
+            //label 'process_low'
             cpus 2
             memory '5 GB'
 
@@ -357,7 +349,7 @@ if (params.fasta) {
 
             script:
             """
-            pigz -d -c $fasta_gz > ${fasta_gz.baseName}
+            gunzip -d -c $fasta_gz > ${fasta_gz.baseName}
             """
         }
     }
@@ -372,6 +364,7 @@ if (!params.fai) {
         // label 'process_low'
         cpus 2
         memory '5 GB'
+
         input:
         path(fasta) from ch_fasta_fai
 
@@ -405,7 +398,7 @@ if (!params.star_index) {
         if (hasExtension(params.gtf, 'gz')) {
             process decompress_gtf {
                 tag "$gtf_gz"
-                // label 'process_low'
+                //label 'process_low'
                 cpus 2
                 memory '5 GB'
 
@@ -529,7 +522,7 @@ if (params.peakcaller && icount_check) {
  */
 process fastqc {
     tag "$name"
-    // label 'process_medium'
+    //label 'process_low'
     cpus 2
     memory '5 GB'
     publishDir "${params.outdir}/fastqc", mode: params.publish_dir_mode,
@@ -538,33 +531,52 @@ process fastqc {
                 }
 
     input:
-    tuple val(name), path(reads), path(control) from ch_fastq_fastqc_pretrim // check syntax
+    tuple val(name), path(read_1), path(read_2), path(control_1), path(control_2) from ch_fastq_fastqc_pretrim
 
     output:
     file "*fastqc.{zip,html}" into ch_fastqc_pretrim_mqc
 
     script:
-    read_ext = reads.getName().split('\\.', 2)[1]
-    read_name = reads.getName().split('\\.', 2)[0]
-    new_reads = "${name}_reads_fastqc.${read_ext}"
-    new_reads_simple = "${name}_reads_fastqc"
+    read_1_ext = read_1.getName().split('\\.', 2)[1]
+    read_1_name = read_1.getName().split('\\.', 2)[0]
+    new_read_1 = "${name}_r_1_fastqc.${read_1_ext}"
+    new_read_1_simple = "${name}_r_1_fastqc"
 
-    control_ext = control.getName().split('\\.', 2)[1]
-    control_name = control.getName().split('\\.', 2)[0]
-    new_control = "${name}_control_fastqc.${control_ext}"
-    new_control_simple = "${name}_control_fastqc"
+    read_2_ext = read_2.getName().split('\\.', 2)[1]
+    read_2_name = read_2.getName().split('\\.', 2)[0]
+    new_read_2 = "${name}_r_2_fastqc.${read_2_ext}"
+    new_read_2_simple = "${name}_r_2_fastqc"
+
+    control_1_ext = control_1.getName().split('\\.', 2)[1]
+    control_1_name = control_1.getName().split('\\.', 2)[0]
+    new_control_1 = "${name}_c_1_fastqc.${control_1_ext}"
+    new_control_1_simple = "${name}_c_1_fastqc"
+
+    control_2_ext = control_2.getName().split('\\.', 2)[1]
+    control_2_name = control_2.getName().split('\\.', 2)[0]
+    new_control_2 = "${name}_c_2_fastqc.${control_2_ext}"
+    new_control_2_simple = "${name}_c_2_fastqc"
 
     """
+    cp ${read_1} ${new_read_1}
+    fastqc --quiet --threads $task.cpus ${new_read_1}
+    mv ${new_read_1_simple}*.html ${name}_r_1_fastqc.html
+    mv ${new_read_1_simple}*.zip ${name}_r_1_fastqc.zip
 
-    cp ${reads} ${new_reads}
-    fastqc --quiet --threads $task.cpus ${new_reads}
-    mv ${new_reads_simple}*.html ${name}_reads_fastqc.html
-    mv ${new_reads_simple}*.zip ${name}_reads_fastqc.zip
+    cp ${read_2} ${new_read_2}
+    fastqc --quiet --threads $task.cpus ${new_read_2}
+    mv ${new_read_2_simple}*.html ${name}_r_2_fastqc.html
+    mv ${new_read_2_simple}*.zip ${name}_r_2_fastqc.zip
 
-    cp ${control} ${new_control}
-    fastqc --quiet --threads $task.cpus ${new_control}
-    mv ${new_control_simple}*.html ${name}_control_fastqc.html
-    mv ${new_control_simple}*.zip ${name}_control_fastqc.zip
+    cp ${control_1} ${new_control_1}
+    fastqc --quiet --threads $task.cpus ${new_control_1}
+    mv ${new_control_1_simple}*.html ${name}_control_1_fastqc.html
+    mv ${new_control_1_simple}*.zip ${name}_control_1_fastqc.zip
+
+    cp ${control_2} ${new_control_2}
+    fastqc --quiet --threads $task.cpus ${new_control_2}
+    mv ${new_control_2_simple}*.html ${name}_control_2_fastqc.html
+    mv ${new_control_2_simple}*.zip ${name}_control_2_fastqc.zip
     """
 }
 /*
@@ -583,24 +595,36 @@ if (params.move_umi) {
                     }
 
         input:
-        tuple val(name), path(reads), path(control) from ch_fastq
+        tuple val(name), path(r_1), path(r_2), path(c_1), path(c_2) from ch_fastq
 
         output:
-        tuple val(name), path("${name}.umi.fastq.gz") into ch_umi_moved
+        tuple val(name), path("${name}.r_1.umi.fastq.gz"), path("${name}.r_2.umi.fastq.gz"), path("${name}.c_1.umi.fastq.gz"), path("${name}.c_2.umi.fastq.gz") into ch_umi_moved
 
         script:
         """
         umi_tools \\
             extract \\
             -p "$params.move_umi" \\
-            -I $reads \\
-            -S ${name}.umi.fastq.gz
+            -I $r_1 \\
+            -S ${name}.r_1.umi.fastq.gz
 
-            umi_tools \\
+        umi_tools \\
             extract \\
             -p "$params.move_umi" \\
-            -I $reads, $control \\
-            -S ${name}.umi.fastq.gz
+            -I $r_2 \\
+            -S ${name}.r_2.umi.fastq.gz
+
+        umi_tools \\
+            extract \\
+            -p "$params.move_umi" \\
+            -I $c_1 \\
+            -S ${name}.c_1.umi.fastq.gz
+        
+        umi_tools \\
+            extract \\
+            -p "$params.move_umi" \\
+            -I $c_2 \\
+            -S ${name}.c_2.umi.fastq.gz
         """
     }
 } else {
@@ -613,55 +637,68 @@ if (params.move_umi) {
 //  ch_umi_moved.dump()
 process cutadapt {
     tag "$name"
-    // label 'process_high'
-    memory '16 GB'    
     cpus 8
+    memory '16 GB'
+    // label 'process_high'memory '16 GB'    cpus 16
     publishDir "${params.outdir}/cutadapt", mode: params.publish_dir_mode
 
     input:
-    tuple val(name), path(reads), path(control) from ch_umi_moved // 
+    tuple val(name), path(r_1), path(r_2), path(c_1), path(c_2) from ch_umi_moved // 
 
     output:
-    tuple val(name), path("${name}.trimmed.fastq.gz"), path("${name}.control.trimmed.fastq.gz") into ch_trimmed
+    tuple val(name), path("${name}.reads_1.trimmed.fastq.gz"), path("${name}.reads_2.trimmed.fastq.gz"), path("${name}.control_1.trimmed.fastq.gz"),  path("${name}.control_2.trimmed.fastq.gz") into ch_trimmed
 
     path "*.log" into ch_cutadapt_mqc
 
     script: // ln -s $reads ${name}.fastq.gz There is original file in testing folder put the "ln -s" back after testing is complete
     """
-    ln -s $reads ${name}.reads.fastq.gz
-    cutadapt -j $task.cpus -a ${params.adapter} -m 12 -o ${name}.trimmed.fastq.gz ${name}.reads.fastq.gz > ${name}_cutadapt.log
-
-    ln -s $control ${name}.control.fastq.gz
-    cutadapt -j $task.cpus -a ${params.adapter} -m 12 -o ${name}.control.trimmed.fastq.gz ${name}.control.fastq.gz > ${name}_control_cutadapt.log
+    
+    ln -s $r_1 ${name}.reads_1.fastq.gz 
+    ln -s $r_2 ${name}.reads_2.fastq.gz
+    cutadapt -j $task.cpus -a ${params.adapter} -A ${params.adapter} -m 12 -o ${name}.reads_1.trimmed.fastq.gz -p ${name}.reads_2.trimmed.fastq.gz ${name}.reads_1.fastq.gz ${name}.reads_2.fastq.gz > ${name}.reads_paired_cutadapt.log 
+    
+    ln -s $c_1 ${name}.control_1.fastq.gz
+    ln -s $c_2 ${name}.control_2.fastq.gz
+    cutadapt -j $task.cpus -a ${params.adapter} -A ${params.adapter} -m 12 -o ${name}.control_1.trimmed.fastq.gz -p ${name}.control_2.trimmed.fastq.gz ${name}.control_1.fastq.gz ${name}.control_2.fastq.gz > ${name}.control_paired_cutadapt.log
     """
 }
 /*
  * STEP 3 - Premapping
  */
 if (params.smrna_fasta) {
+
     process premap {
         tag "$name"
         label 'process_high'
         publishDir "${params.outdir}/premap", mode: params.publish_dir_mode
 
         input:
-        tuple val(name), path(reads), path(control) from ch_trimmed
+        tuple val(name), path(r_1), path(r_2), path(c_1), path(c_2) from ch_trimmed
         path(index) from ch_bt2_index.collect()
 
         output:
-        tuple val(name), path("${name}.unmapped.fastq.gz") into ch_unmapped
-        tuple val(name), path("${name}.premapped.bam"), path("${name}.premapped.bam.bai")
+        tuple val(name), path("${name}.r_1.unmapped.fastq.gz"), path("${name}.r_2.unmapped.fastq.gz"), path("${name}.c_1.unmapped.fastq.gz"), path("${name}.c_2.unmapped.fastq.gz") into ch_unmapped
+        tuple val(name), path("${name}.r_1.premapped.bam"), path("${name}.r_1.premapped.bam.bai"), path("${name}.r_2.premapped.bam"), path("${name}.r_2.premapped.bam.bai"), path("${name}.c_1.premapped.bam"), path("${name}.c_1.premapped.bam.bai"), path("${name}.c_2.premapped.bam"), path("${name}.c_2.premapped.bam.bai")
+
         path "*.log" into ch_premap_mqc, ch_premap_qc
 
         script:
         """
-        bowtie2 -p $task.cpus -x ${index[0].simpleName} --un-gz ${name}.unmapped.fastq.gz -U $reads 2> ${name}.premap.log | \
-        samtools sort -@ $task.cpus /dev/stdin > ${name}.premapped.bam && \
-        samtools index -@ $task.cpus ${name}.premapped.bam
+        bowtie2 -p $task.cpus -x ${index[0].simpleName} --un-gz ${name}.r_1.unmapped.fastq.gz -U $r_1 2> ${name}.r_1.premap.log | \
+        samtools sort -@ $task.cpus /dev/stdin > ${name}.r_1.premapped.bam && \
+        samtools index -@ $task.cpus ${name}.r_1.premapped.bam
 
-        bowtie2 -p $task.cpus -x ${index[0].simpleName} --un-gz ${name}_control.unmapped.fastq.gz -U $control 2> ${name}_control.premap.log | \
-        samtools sort -@ $task.cpus /dev/stdin > ${name}_control.premapped.bam && \
-        samtools index -@ $task.cpus ${name}_control.premapped.bam
+        bowtie2 -p $task.cpus -x ${index[0].simpleName} --un-gz ${name}.r_2.unmapped.fastq.gz -U $r_2 2> ${name}.r_2.premap.log | \
+        samtools sort -@ $task.cpus /dev/stdin > ${name}.r_2.premapped.bam && \
+        samtools index -@ $task.cpus ${name}.r_2.premapped.bam
+
+        bowtie2 -p $task.cpus -x ${index[0].simpleName} --un-gz ${name}.c_1.unmapped.fastq.gz -U $c_1 2> ${name}.c_1.premap.log | \
+        samtools sort -@ $task.cpus /dev/stdin > ${name}.c_1.premapped.bam && \
+        samtools index -@ $task.cpus ${name}.c_1.premapped.bam
+
+        bowtie2 -p $task.cpus -x ${index[0].simpleName} --un-gz ${name}.c_2.unmapped.fastq.gz -U $c_2 2> ${name}.c_2.premap.log | \
+        samtools sort -@ $task.cpus /dev/stdin > ${name}.c_2.premapped.bam && \
+        samtools index -@ $task.cpus ${name}.c_2.premapped.bam
         """
     }
 } else {
@@ -669,7 +706,7 @@ if (params.smrna_fasta) {
     ch_premap_mqc = Channel.empty()
     ch_premap_qc = Channel.empty()
 }
-
+//ch_trimmed.dump()
 /*
  * STEP 4 - Aligning
  */
@@ -681,11 +718,11 @@ process align {
     publishDir "${params.outdir}/mapped", mode: params.publish_dir_mode
 
     input:
-    tuple val(name), path(reads), path(control) from ch_unmapped
+    tuple val(name), path(r_1), path(r_2), path(c_1), path(c_2) from ch_unmapped
     path(index) from ch_star_index.collect()
 
     output:
-    tuple val(name), path("${name}.Aligned.sortedByCoord.out.bam"), path("${name}.Aligned.sortedByCoord.out.bam.bai"), path("${name}_control.Aligned.sortedByCoord.out.bam"), path("${name}_control.Aligned.sortedByCoord.out.bam.bai") into ch_aligned, ch_aligned_preseq
+    tuple val(name), path("${name}.Aligned.sortedByCoord.out.bam"), path("${name}.Aligned.sortedByCoord.out.bam.bai"), path("${name}.control.Aligned.sortedByCoord.out.bam"), path("${name}.control.Aligned.sortedByCoord.out.bam.bai") into ch_aligned, ch_aligned_preseq
     path "*.Log.final.out" into ch_align_mqc, ch_align_qc
 
     script:
@@ -701,12 +738,13 @@ process align {
                 --alignEndsType Extend5pOfRead1 \
                 --twopassMode Basic \
                 --outSAMtype BAM Unsorted"
+
     """
     STAR \\
         --runThreadN $task.cpus \\
         --runMode alignReads \\
         --genomeDir $index \\
-        --readFilesIn $reads --readFilesCommand gunzip -c \\
+        --readFilesIn $r_1 $r_2 --readFilesCommand gunzip -c \\
         --outFileNamePrefix ${name}. $clip_args
 
     samtools sort -@ $task.cpus -o ${name}.Aligned.sortedByCoord.out.bam ${name}.Aligned.out.bam
@@ -716,26 +754,26 @@ process align {
         --runThreadN $task.cpus \\
         --runMode alignReads \\
         --genomeDir $index \\
-        --readFilesIn $control --readFilesCommand gunzip -c \\
-        --outFileNamePrefix ${name}. $clip_args
+        --readFilesIn $c_1 $c_2 --readFilesCommand gunzip -c \\
+        --outFileNamePrefix ${name}.control. $clip_args
 
-    samtools sort -@ $task.cpus -o ${name}_control.Aligned.sortedByCoord.out.bam ${name}_control.Aligned.out.bam
-    samtools index -@ $task.cpus ${name}_control.Aligned.sortedByCoord.out.bam
+    samtools sort -@ $task.cpus -o ${name}.control.Aligned.sortedByCoord.out.bam ${name}.control.Aligned.out.bam
+    samtools index -@ $task.cpus ${name}.control.Aligned.sortedByCoord.out.bam
     """
 }
-
+//ch_align_qc.dump()
 /*
  * STEP 5 - Aligning QC
  */
 process preseq {
     tag "$name"
-    // label 'process_low'
+    //label 'process_low'
     cpus 2
     memory '5 GB'
     publishDir "${params.outdir}/preseq", mode: params.publish_dir_mode
 
     input:
-    tuple val(name), path(bam), path(bai) from ch_aligned_preseq
+    tuple val(name), path(bam), path(bai), path(bam_control), path(bai_control) from ch_aligned_preseq
 
     output:
     path '*.ccurve.txt' into ch_preseq_mqc
@@ -750,6 +788,13 @@ process preseq {
         -seed 42 \\
         $bam
     cp .command.err ${name}.command.log
+    preseq lc_extrap \\
+        -output ${name}.control.ccurve.txt \\
+        -verbose \\
+        -bam \\
+        -seed 42 \\
+        $bam_control
+    cp .command.err ${name}.control.command.log
     """
 }
 
@@ -765,10 +810,10 @@ if (params.deduplicate) {
         publishDir "${params.outdir}/dedup", mode: params.publish_dir_mode
 
         input:
-        tuple val(name), path(bam), path(bai) from ch_aligned
+        tuple val(name), path(bam), path(bai), path(bam_control), path(bai_control)from ch_aligned
 
         output:
-        tuple val(name), path("${name}.dedup.bam"), path("${name}.dedup.bam.bai") into ch_dedup, ch_dedup_pureclip, ch_dedup_rseqc
+        tuple val(name), path("${name}.dedup.bam"), path("${name}.dedup.bam.bai"), path("${name}.control.dedup.bam"), path("${name}.control.dedup.bam.bai") into ch_dedup, ch_dedup_pureclip, ch_dedup_rseqc
         path "*.log" into ch_dedup_mqc, ch_dedup_qc
 
         script:
@@ -781,10 +826,19 @@ if (params.deduplicate) {
             --output-stats=${name} \\
             --log=${name}.log
         samtools index -@ $task.cpus ${name}.dedup.bam
+
+        umi_tools \\
+            dedup \\
+            --umi-separator="$params.umi_separator" \\
+            -I $bam_control \\
+            -S ${name}.control.dedup.bam \\
+            --output-stats=${name}.control \\
+            --log=${name}.control.log
+        samtools index -@ $task.cpus ${name}.control.dedup.bam
         """
     }
 } else {
-    ch_aligned.into { ch_dedup; ch_dedup_rseqc }
+    ch_aligned.into { ch_dedup; ch_dedup_rseqc; ch_dedup_pureclip }
     // ch_dedup = ch_aligned 
     ch_dedup_mqc = Channel.empty()
     ch_dedup_qc = Channel.empty()
@@ -802,13 +856,13 @@ if (params.gtf) {
 
     process rseqc {
         tag "$name"
-        // label 'process_low'
+        //label 'process_low'
         cpus 2
         memory '5 GB'
         publishDir "${params.outdir}/rseqc", mode: params.publish_dir_mode
 
         input:
-        tuple val(name), path(bam), path(bai) from ch_dedup_rseqc
+        tuple val(name), path(bam), path(bai), path(bam_control), path(bai_control) from ch_dedup_rseqc
         path(gtf) from ch_gtf_rseqc.collect()
 
         output:
@@ -822,6 +876,13 @@ if (params.gtf) {
             -i $bam \\
             -r gene.bed \\
             > ${name}.read_distribution.txt
+
+        gtf2bed $gtf > gene.bed
+
+        read_distribution.py \\
+            -i $bam_control \\
+            -r gene.bed \\
+            > ${name}.control.read_distribution.txt
         """
     }
 } else {
@@ -833,18 +894,18 @@ if (params.gtf) {
  */
 process get_crosslinks {
     tag "$name"
-    // label 'process_medium'
     cpus 8
     memory '12 GB'
+    // label 'process_medium'
     publishDir "${params.outdir}/xlinks", mode: params.publish_dir_mode
 
     input:
-    tuple val(name), path(bam), path(bai) from ch_dedup
+    tuple val(name), path(bam), path(bai), path(bam_control), path(bai_control) from ch_dedup
     path(fai) from ch_fai_crosslinks.collect()
 
     output:
-    tuple val(name), path("${name}.xl.bed.gz") into ch_xlinks_icount, ch_xlinks_paraclu, ch_xlinks_piranha
-    tuple val(name), path("${name}.xl.bedgraph.gz") into ch_xlinks_bedgraphs
+    tuple val(name), path("${name}.xl.bed.gz"), path("${name}.control.xl.bed.gz") into ch_xlinks_icount, ch_xlinks_paraclu, ch_xlinks_piranha
+    tuple val(name), path("${name}.xl.bedgraph.gz"), path("${name}.control.xl.bedgraph.gz") into ch_xlinks_bedgraphs
     path "*.xl.bed.gz" into ch_xlinks_qc
 
     script:
@@ -855,7 +916,12 @@ process get_crosslinks {
     bedtools genomecov -dz -strand - -5 -i shifted.bed -g $fai | awk '{OFS="\t"}{print \$1, \$2, \$2+1, ".", \$3, "-"}' > neg.bed
     cat pos.bed neg.bed | sort -k1,1 -k2,2n | pigz > ${name}.xl.bed.gz
     zcat ${name}.xl.bed.gz | awk '{OFS = "\t"}{if (\$6 == "+") {print \$1, \$2, \$3, \$5} else {print \$1, \$2, \$3, -\$5}}' | pigz > ${name}.xl.bedgraph.gz
+    
+    bedtools bamtobed -i $bam_control > ${name}.control.xl.bed
+    bgzip ${name}.control.xl.bed
+    zcat ${name}.control.xl.bed.gz | awk '{OFS = "\t"}{if (\$6 == "+") {print \$1, \$2, \$3, \$5} else {print \$1, \$2, \$3, -\$5}}' | pigz > ${name}.control.xl.bedgraph.gz
     """
+
 }
 
 /*
@@ -1004,7 +1070,7 @@ if ('pureclip' in callers) {
         'pureclip' in callers
 
         input:
-        tuple val(name), path(bam), path(bai) from ch_dedup_pureclip
+        tuple val(name), path(bam), path(bai), path(bam_control), path(bai_control) from ch_dedup_pureclip
         path(fasta) from ch_fasta_pureclip.collect()
 
         output:
@@ -1022,10 +1088,13 @@ if ('pureclip' in callers) {
             -i $bam \\
             -bai $bai \\
             -g $fasta \\
+            -ibam $bam_control \\
+            -ibai $bai_control \\
+            -v \\
             -nt $task.cpus \\
-            $args \\
+            -iv 'chr1;chr2;chr3;' \\
             -o "${name}.sigxl.bed" \\
-            -or "${name}.${dm}nt.peaks.bed"
+            -or "${name}.${dm}nt.peaks.bed"\\
 
         pigz ${name}.sigxl.bed ${name}.${dm}nt.peaks.bed
         """
@@ -1065,37 +1134,41 @@ if ('pureclip' in callers) {
 if ('piranha' in callers) {
     process piranha_peak_call {
         tag "$name"
-        // label 'process_high'
-        cpus 16 
+        cpus 16
         memory '36 GB'
+        // label 'process_high'
         publishDir "${params.outdir}/piranha", mode: params.publish_dir_mode
 
         when:
         'piranha' in callers
 
         input:
-        tuple val(name), path(xlinks) from ch_xlinks_piranha
+        tuple val(name), path(xlinks_exp), path(xlinks_control) from ch_xlinks_piranha
 
         output:
-        tuple val(name), path("${name}.${bin_size_both}nt_${cluster_dist}nt.peaks.bed.gz") into ch_peaks_piranha
+        // tuple val(name), path("${name}.${bin_size_both}nt_${cluster_dist}nt.peaks.bed.gz"), path("${name}.${bin_size_both}nt_${cluster_dist}control.nt.peaks.bed.gz") into ch_peaks_piranha
         path "*.peaks.bed.gz" into ch_piranha_qc
 
         script:
         bin_size_both = params.bin_size_both
         cluster_dist = params.cluster_dist
         """
-        pigz -d -c $xlinks | \\
+        pigz -d -c $xlinks_exp | \\
         awk '{OFS="\t"}{for(i=0;i<\$5;i++) print }' \\
         > expanded.bed
+         pigz -d -c $xlinks_control | \\
+        awk '{OFS="\t"}{for(i=0;i<\$5;i++) print }' \\
+        > control.expanded.bed
 
         Piranha \\
-            expanded.bed \\
+            expanded.bed control.expanded.bed\\
+            -i $bin_size_both \\
             -s \\
             -b $bin_size_both \\
             -u $cluster_dist \\
-            -o paraclu.bed
+            -o piranha.bed
 
-        awk '{OFS="\t"}{print \$1, \$2, \$3, ".", \$5, \$6}' paraclu.bed | \\
+        awk '{OFS="\t"}{print \$1, \$2, \$3, ".", \$5, \$6}' piranha.bed | \\
         pigz > ${name}.${bin_size_both}nt_${cluster_dist}nt.peaks.bed.gz
         """
     }
@@ -1134,10 +1207,9 @@ if ('piranha' in callers) {
  * STEP 8 - QC plots
  */
 process clipqc {
-    // label 'process_low'
+    //label 'process_low'
     cpus 2
-    memory '16 GB'
-
+    memory '5 GB'
     publishDir "${params.outdir}/clipqc", mode: params.publish_dir_mode 
 
     input:
@@ -1181,7 +1253,7 @@ process clipqc {
  * STEP 9 - MultiQC
  */
 process multiqc {
-    // label 'process_low'
+    //label 'process_low'
     cpus 2
     memory '5 GB'
     publishDir "${params.outdir}/multiqc", mode: params.publish_dir_mode
