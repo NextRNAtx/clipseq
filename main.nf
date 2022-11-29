@@ -366,7 +366,7 @@ if (!params.fai) {
         memory '5 GB'
 
         input:
-        path(fasta) from ch_fasta
+        path(fasta) from ch_fasta_fai
 
         output:
         path("*.fai") into (ch_fai_crosslinks, ch_fai_icount, ch_fai_icount_motif, ch_fai_paraclu_motif, ch_fai_pureclip_motif, ch_fai_piranha_motif)
