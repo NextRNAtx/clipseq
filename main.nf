@@ -650,7 +650,7 @@ process cutadapt {
     output:
     tuple val(name), path("${name}.reads_1.trimmed.fastq.gz"), path("${name}.reads_2.trimmed.fastq.gz"), path("${name}.control_1.trimmed.fastq.gz"),  path("${name}.control_2.trimmed.fastq.gz") into ch_trimmed
 
-    path "*.log" into ch_cutadapt_mqc
+    // path "*.log" into ch_cutadapt_mqc
 
     script: // ln -s $reads ${name}.fastq.gz There is original file in testing folder put the "ln -s" back after testing is complete
     """
@@ -687,7 +687,7 @@ process cutadapt {
     -A TCGGAAGAGCGTCGT \
     -A CGGAAGAGCGTCGTG \
     -A GGAAGAGCGTCGTGT \
-    -o ${name}.reads_1.trimmed.fastq.gz -p ${name}.reads_2.trimmed.fastq.gz ${name}.reads_1.fastq.gz ${name}.reads_2.fastq.gz > ${name}.reads_paired_cutadapt.log 
+    -o ${name}.reads_1.trimmed.fastq.gz -p ${name}.reads_2.trimmed.fastq.gz ${name}.reads_1.fastq.gz ${name}.reads_2.fastq.gz 
     
     ln -s $c_1 ${name}.control_1.fastq.gz
     ln -s $c_2 ${name}.control_2.fastq.gz
@@ -721,7 +721,7 @@ process cutadapt {
     -A TCGGAAGAGCGTCGT \
     -A CGGAAGAGCGTCGTG \
     -A GGAAGAGCGTCGTGT \
-    -o ${name}.control_1.trimmed.fastq.gz -p ${name}.control_2.trimmed.fastq.gz ${name}.control_1.fastq.gz ${name}.control_2.fastq.gz > ${name}.control_paired_cutadapt.log
+    -o ${name}.control_1.trimmed.fastq.gz -p ${name}.control_2.trimmed.fastq.gz ${name}.control_1.fastq.gz ${name}.control_2.fastq.gz 
     """
 }
 /*
@@ -1327,7 +1327,7 @@ process multiqc {
     file (multiqc_config) from ch_multiqc_config
     file (mqc_custom_config) from ch_multiqc_custom_config.collect().ifEmpty([])
     file ('fastqc/*') from ch_fastqc_pretrim_mqc.collect().ifEmpty([])
-    file ('cutadapt/*') from ch_cutadapt_mqc.collect().ifEmpty([])
+    // file ('cutadapt/*') from ch_cutadapt_mqc.collect().ifEmpty([])
     file ('premap/*') from ch_premap_mqc.collect().ifEmpty([])
     file ('mapped/*') from ch_align_mqc.collect().ifEmpty([])
     path ('preseq/*') from ch_preseq_mqc.collect().ifEmpty([])
