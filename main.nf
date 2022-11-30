@@ -657,11 +657,71 @@ process cutadapt {
     
     ln -s $r_1 ${name}.reads_1.fastq.gz 
     ln -s $r_2 ${name}.reads_2.fastq.gz
-    cutadapt -j $task.cpus -a ${params.adapter} -A ${params.adapter} -m 12 -o ${name}.reads_1.trimmed.fastq.gz -p ${name}.reads_2.trimmed.fastq.gz ${name}.reads_1.fastq.gz ${name}.reads_2.fastq.gz > ${name}.reads_paired_cutadapt.log 
+    cutadapt -j $task.cpus -f fastq \
+    --match-read-wildcards \
+    --times 1 \
+    -e 0.1 \
+    -O 1 \
+    --quality-cutoff 6 \
+    -m 18 \
+    -a NNNNNAGATCGGAAGAGCACACGTCTGAACTCCAGTCAC \
+    -g CTTCCGATCTACAAGTT \
+    -g CTTCCGATCTTGGTCCT \
+    -A AACTTGTAGATCGGA \
+    -A AGGACCAAGATCGGA \
+    -A ACTTGTAGATCGGAA \
+    -A GGACCAAGATCGGAA \
+    -A CTTGTAGATCGGAAG \
+    -A GACCAAGATCGGAAG \
+    -A TTGTAGATCGGAAGA \
+    -A ACCAAGATCGGAAGA \
+    -A TGTAGATCGGAAGAG \
+    -A CCAAGATCGGAAGAG \
+    -A GTAGATCGGAAGAGC \
+    -A CAAGATCGGAAGAGC \
+    -A TAGATCGGAAGAGCG \
+    -A AAGATCGGAAGAGCG \
+    -A AGATCGGAAGAGCGT \
+    -A GATCGGAAGAGCGTC \
+    -A ATCGGAAGAGCGTCG \
+    -A TCGGAAGAGCGTCGT \
+    -A CGGAAGAGCGTCGTG \
+    -A GGAAGAGCGTCGTGT \
+    -o ${name}.reads_1.trimmed.fastq.gz -p ${name}.reads_2.trimmed.fastq.gz ${name}.reads_1.fastq.gz ${name}.reads_2.fastq.gz > ${name}.reads_paired_cutadapt.log 
     
     ln -s $c_1 ${name}.control_1.fastq.gz
     ln -s $c_2 ${name}.control_2.fastq.gz
-    cutadapt -j $task.cpus -a ${params.adapter} -A ${params.adapter} -m 12 -o ${name}.control_1.trimmed.fastq.gz -p ${name}.control_2.trimmed.fastq.gz ${name}.control_1.fastq.gz ${name}.control_2.fastq.gz > ${name}.control_paired_cutadapt.log
+    cutadapt -j $task.cpus -f fastq \
+    --match-read-wildcards \
+    --times 1 \
+    -e 0.1 \
+    -O 1 \
+    --quality-cutoff 6 \
+    -m 18 \
+    -a NNNNNAGATCGGAAGAGCACACGTCTGAACTCCAGTCAC \
+    -g CTTCCGATCTACAAGTT \
+    -g CTTCCGATCTTGGTCCT \
+    -A AACTTGTAGATCGGA \
+    -A AGGACCAAGATCGGA \
+    -A ACTTGTAGATCGGAA \
+    -A GGACCAAGATCGGAA \
+    -A CTTGTAGATCGGAAG \
+    -A GACCAAGATCGGAAG \
+    -A TTGTAGATCGGAAGA \
+    -A ACCAAGATCGGAAGA \
+    -A TGTAGATCGGAAGAG \
+    -A CCAAGATCGGAAGAG \
+    -A GTAGATCGGAAGAGC \
+    -A CAAGATCGGAAGAGC \
+    -A TAGATCGGAAGAGCG \
+    -A AAGATCGGAAGAGCG \
+    -A AGATCGGAAGAGCGT \
+    -A GATCGGAAGAGCGTC \
+    -A ATCGGAAGAGCGTCG \
+    -A TCGGAAGAGCGTCGT \
+    -A CGGAAGAGCGTCGTG \
+    -A GGAAGAGCGTCGTGT \
+    -o ${name}.control_1.trimmed.fastq.gz -p ${name}.control_2.trimmed.fastq.gz ${name}.control_1.fastq.gz ${name}.control_2.fastq.gz > ${name}.control_paired_cutadapt.log
     """
 }
 /*
