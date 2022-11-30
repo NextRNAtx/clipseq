@@ -657,7 +657,7 @@ process cutadapt {
     
     ln -s $r_1 ${name}.reads_1.fastq.gz 
     ln -s $r_2 ${name}.reads_2.fastq.gz
-    cutadapt -j $task.cpus -f fastq \
+    cutadapt -j $task.cpus \
     --match-read-wildcards \
     --times 1 \
     -e 0.1 \
@@ -691,7 +691,7 @@ process cutadapt {
     
     ln -s $c_1 ${name}.control_1.fastq.gz
     ln -s $c_2 ${name}.control_2.fastq.gz
-    cutadapt -j $task.cpus -f fastq \
+    cutadapt -j $task.cpus  \
     --match-read-wildcards \
     --times 1 \
     -e 0.1 \
