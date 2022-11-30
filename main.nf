@@ -639,7 +639,7 @@ process cutadapt {
     tag "$name"
     cpus 8
     memory '16 GB'
-    time { check_max( 10.h * task.attempt, 'time' )}
+    time { 10.h * task.attempt }
 
     // label 'process_high'memory '16 GB'    cpus 16
     publishDir "${params.outdir}/cutadapt", mode: params.publish_dir_mode
@@ -717,7 +717,7 @@ process align {
     // label 'process_high'
     cpus 8
     memory '52 GB'
-    time { check_max( 10.h * task.attempt, 'time' )}
+    time { 10.h * task.attempt }
     publishDir "${params.outdir}/mapped", mode: params.publish_dir_mode
 
     input:
@@ -810,7 +810,7 @@ if (params.deduplicate) {
         // label 'process_high'
         cpus 2
         memory '16 GB'
-        time { check_max( 10.h * task.attempt, 'time' )}
+        time { 10.h * task.attempt }
         publishDir "${params.outdir}/dedup", mode: params.publish_dir_mode
 
         input:
@@ -1068,7 +1068,7 @@ if ('pureclip' in callers) {
         // label 'process_high'
         cpus 6
         memory '48 GB'
-        time { check_max( 10.h * task.attempt, 'time' )}
+        time { 10.h * task.attempt }
         publishDir "${params.outdir}/pureclip", mode: params.publish_dir_mode
 
         when:
