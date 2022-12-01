@@ -604,27 +604,19 @@ if (params.move_umi) {
         """
         umi_tools \\
             extract \\
-            -p "$params.move_umi" \\
             -I $r_1 \\
+            --read2-in $r_2
             -S ${name}.r_1.umi.fastq.gz
+            --read2-out ${name}.r_2.umi.fastq.gz
+            --bc-pattern $params.move_umi
 
         umi_tools \\
             extract \\
-            -p "$params.move_umi" \\
-            -I $r_2 \\
-            -S ${name}.r_2.umi.fastq.gz
-
-        umi_tools \\
-            extract \\
-            -p "$params.move_umi" \\
             -I $c_1 \\
+            --read2-in $c_2
             -S ${name}.c_1.umi.fastq.gz
-        
-        umi_tools \\
-            extract \\
-            -p "$params.move_umi" \\
-            -I $c_2 \\
-            -S ${name}.c_2.umi.fastq.gz
+            --read2-out ${name}.c_2.umi.fastq.gz
+            --bc-pattern $params.move_umi
         """
     }
 } else {
